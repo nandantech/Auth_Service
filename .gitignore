@@ -38,3 +38,6 @@ out/
 
 # Ignore .env file (add this line to avoid tracking the .env file)
 .env
+
+#ignore h2 data folder
+/data
