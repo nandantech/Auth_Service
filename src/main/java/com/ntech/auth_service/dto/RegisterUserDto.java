@@ -10,10 +10,11 @@ public class RegisterUserDto {
     private String password;
     private String email;
 
-    public void setEmail(String email) {
-        this.email = email;
-        if(email != null && email.contains("@") && username != null && !username.isEmpty()) {
-            this.username = email.split("@")[0];
-        }
-    }
+//    Uncomment this when username is not a mandatory field at the frontend
+//    public void setEmail(String email) {
+//        this.email = email;
+//        if(username != null && !username.isEmpty() && email != null && email.contains("@")) {
+//            this.username = email.split("@")[0];
+//        }
+//    }
 }
