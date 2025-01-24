@@ -1,4 +1,4 @@
-package com.ntech.auth_service.config.responses;
+package com.ntech.auth_service.responses;
 
 import lombok.Getter;
 import lombok.Setter;
