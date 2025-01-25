@@ -30,6 +30,10 @@ public class User implements UserDetails {
     private String verificationCode;
     @Column(name="verification_exp")
     private LocalDateTime verificationExpiresAt;
+    @Column(name="reset_token")
+    private String resetToken;
+    @Column(name="reset_token_exp")
+    private LocalDateTime resetTokenExpiresAt;
     private boolean enabled;
 
     public User(String username, String email, String password) {
@@ -38,9 +42,7 @@ public class User implements UserDetails {
         this.password = password;
     }
 
-    public User(){};
-
-
+    public User(){}
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

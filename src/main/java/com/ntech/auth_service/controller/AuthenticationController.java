@@ -1,6 +1,7 @@
 package com.ntech.auth_service.controller;
 
 import com.ntech.auth_service.dto.LoginUserDto;
+import com.ntech.auth_service.dto.ResetPasswordDto;
 import com.ntech.auth_service.responses.LoginResponse;
 import com.ntech.auth_service.dto.RegisterUserDto;
 import com.ntech.auth_service.dto.VerifyUserDto;
@@ -67,5 +68,26 @@ public class AuthenticationController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestParam String email) {
+        try{
+            authenticationService.sendPasswordResetEmail(email);
+            return ResponseEntity.ok("Password reset email has been sent if the provided email is associated with an account.");
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordDto resetPasswordDto) {
+        try{
+            LoginResponse loginResponse = authenticationService.resetPassword(resetPasswordDto);
+            return ResponseEntity.ok().body(loginResponse);
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+
     }
 }

@@ -1,27 +1,27 @@
 package com.ntech.auth_service.service;
 
 import com.ntech.auth_service.dto.LoginUserDto;
+import com.ntech.auth_service.dto.ResetPasswordDto;
 import com.ntech.auth_service.responses.LoginResponse;
 import com.ntech.auth_service.dto.RegisterUserDto;
 import com.ntech.auth_service.dto.VerifyUserDto;
 import com.ntech.auth_service.model.User;
 import com.ntech.auth_service.repository.UserRepository;
 import jakarta.mail.MessagingException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.Optional;
 import java.util.Random;
 
 @Service
+@Slf4j
 public class AuthenticationService {
-
-    private static final Logger logger = LoggerFactory.getLogger(AuthenticationService.class);
 
     private final JwtService jwtService;
     private final UserRepository userRepository;
@@ -92,7 +92,7 @@ public class AuthenticationService {
                 return new LoginResponse("User Not Found or already verified!");
             }
         }catch (Exception e){
-            logger.error("An error occurred while verifying the user: {}", e.getMessage(), e);
+            log.error("An error occurred while verifying the user: {}", e.getMessage(), e);
             return new LoginResponse(e.getMessage());
         }
     }
@@ -147,6 +147,47 @@ public class AuthenticationService {
             userRepository.save(user);
         } else {
             throw new RuntimeException("User not found");
+        }
+    }
+
+    public void sendPasswordResetEmail(String email) throws MessagingException {
+        Optional<User> userOptional = userRepository.findByEmail(email);
+        if (userOptional.isPresent() && userOptional.get().isEnabled()) {
+            User user = userOptional.get();
+            user.setResetToken(generateSecureResetToken());
+            user.setResetTokenExpiresAt(LocalDateTime.now().plusHours(1));
+            userRepository.save(user);
+            emailService.sendPasswordResetEmail(user);
+        }
+    }
+    private String generateSecureResetToken() {
+        SecureRandom secureRandom = new SecureRandom();
+        byte[] token = new byte[32];  // 32 bytes = 256 bits
+        secureRandom.nextBytes(token);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(token);
+    }
+
+    public LoginResponse resetPassword(ResetPasswordDto resetPasswordDto) {
+        Optional<User> userOptional = userRepository.findByResetToken(resetPasswordDto.getToken());
+        if(userOptional.isPresent() && userOptional.get().isEnabled()) {
+            User user = userOptional.get();
+            if(user.getResetTokenExpiresAt().isAfter(LocalDateTime.now())){
+                user.setPassword(passwordEncoder.encode(resetPasswordDto.getPassword()));
+                user.setResetToken(null);
+                user.setResetTokenExpiresAt(null);
+                userRepository.save(user);
+                authenticationManager.authenticate(
+                        new UsernamePasswordAuthenticationToken(
+                                user.getEmail(),
+                                resetPasswordDto.getPassword()
+                        )
+                );
+                return generateLoginResponse(user);
+            }else{
+                return new LoginResponse("Invalid or link expired!");
+            }
+        }else{
+            return new LoginResponse("Reset password failed!");
         }
     }
 }

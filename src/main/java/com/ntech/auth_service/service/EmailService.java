@@ -3,15 +3,25 @@ package com.ntech.auth_service.service;
 import com.ntech.auth_service.model.User;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 @Service
+@Slf4j
 public class EmailService {
     @Autowired
     private JavaMailSender emailSender;
+    @Value("${spring.mail.password.reset.url}")
+    private StringBuilder resetLink;
+
+    public void sendPasswordResetEmail(User user) throws MessagingException {
+        resetLink.append(user.getResetToken());
+        sendEmail(user.getEmail(),"Password Reset", resetLink.toString());
+    }
 
     public void sendVerificationEmail(User user) throws MessagingException { //TODO: Update with company logo
         String subject = "Account Verification";
@@ -53,22 +63,21 @@ public class EmailService {
                 + "</html>";
 
 
+        sendEmail(user.getEmail(), subject, htmlMessage);
 
-        try {
-            sendVerificationEmail(user.getEmail(), subject, htmlMessage);
-        } catch (MessagingException e) {
-           throw new MessagingException(e.getMessage());
-        }
     }
 
-    public void sendVerificationEmail(String to, String subject, String text) throws MessagingException {
+    public void sendEmail(String to, String subject, String text) throws MessagingException {
         MimeMessage message = emailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true);
-
         helper.setTo(to);
         helper.setSubject(subject);
         helper.setText(text, true);
-
-        emailSender.send(message);
+        try {
+            emailSender.send(message);
+        }catch(Exception e){
+            log.error(e.getMessage());
+            throw new MessagingException("Unable to send the email. Please try again after some time");
+        }
     }
 }
